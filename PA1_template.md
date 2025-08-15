@@ -1,23 +1,8 @@
----
-title: "Reproducible Research: Peer Assessment 1"
-author: "Your Name"
-output:
-  html_document:
-    toc: true
-    toc_float: true
-    number_sections: true
-    theme: readable
-  md_document:
-    variant: markdown_github
-always_allow_html: true
----
-
-```{r}
+``` r
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, fig.path = "figure/")
-
 ```
 
-```{r}
+``` r
 # Core tidyverse + dates + tables
 library(tidyverse)
 library(lubridate)
@@ -27,10 +12,9 @@ library(ggrepel)
 
 # Repro note
 set.seed(123)
-
 ```
 
-```{r}
+``` r
 # Helper: prefer CSV; fall back to ZIP -> CSV
 csv_path <- "activity.csv"
 zip_path <- "repdata_data_activity.zip"
@@ -62,20 +46,35 @@ data_summary <- tibble(
   n_intervals = n_distinct(activity$interval)
 )
 kable(data_summary, caption = "Dataset snapshot & integrity checks")
-
 ```
 
-```{r}
+| n_rows | n_missing_steps | date_min   | date_max   | n_days | n_intervals |
+|-------:|----------------:|:-----------|:-----------|-------:|------------:|
+|  17568 |            2304 | 2012-10-01 | 2012-11-30 |     61 |         288 |
+
+Dataset snapshot & integrity checks
+
+``` r
 daily_complete <- activity %>%
   filter(!is.na(steps)) %>%
   group_by(date) %>%
   summarise(total_steps = sum(steps), .groups = "drop")
 
 kable(head(daily_complete), caption = "First rows of daily totals (NAs removed)")
-
 ```
 
-```{r}
+| date       | total_steps |
+|:-----------|------------:|
+| 2012-10-02 |         126 |
+| 2012-10-03 |       11352 |
+| 2012-10-04 |       12116 |
+| 2012-10-05 |       13294 |
+| 2012-10-06 |       15420 |
+| 2012-10-07 |       11015 |
+
+First rows of daily totals (NAs removed)
+
+``` r
 # Assumes daily_complete$total_steps is numeric and non-missing for the days included
 x <- as.numeric(daily_complete$total_steps)
 x <- x[is.finite(x)]  # just in case
@@ -130,30 +129,46 @@ ggplot(daily_complete, aes(x = total_steps)) +
     panel.grid.minor   = element_blank(),
     plot.title.position = "plot"
   )
-
 ```
 
-```{r}
+![](figure/unnamed-chunk-5-1.png)
+
+``` r
 daily_stats <- daily_complete %>%
   summarise(
     mean_total   = mean(total_steps),
     median_total = median(total_steps)
   )
 kable(daily_stats, digits = 1, caption = "Mean and median daily steps (ignoring NAs)")
-
 ```
 
-```{r}
+| mean_total | median_total |
+|-----------:|-------------:|
+|    10766.2 |        10765 |
+
+Mean and median daily steps (ignoring NAs)
+
+``` r
 interval_avg <- activity %>%
   filter(!is.na(steps)) %>%
   group_by(interval) %>%
   summarise(mean_steps = mean(steps), .groups = "drop")
 
 kable(head(interval_avg), digits = 2, caption = "First rows: average steps by 5-min interval")
-
 ```
 
-```{r}
+| interval | mean_steps |
+|---------:|-----------:|
+|        0 |       1.72 |
+|        5 |       0.34 |
+|       10 |       0.13 |
+|       15 |       0.15 |
+|       20 |       0.08 |
+|       25 |       2.09 |
+
+First rows: average steps by 5-min interval
+
+``` r
 library(ggplot2)
 library(dplyr)
 library(scales)
@@ -197,25 +212,33 @@ ggplot(interval_avg, aes(x = time, y = mean_steps)) +
     panel.grid.major.x = element_line(color = "grey85"),
     plot.title.position = "plot"
   )
-
-
-
 ```
 
-```{r}
+![](figure/unnamed-chunk-8-1.png)
+
+``` r
 interval_max <- interval_avg %>% slice_max(mean_steps, n = 1, with_ties = FALSE)
 kable(interval_max, digits = 2, caption = "Interval with maximum average steps")
-
 ```
 
-```{r}
+| interval | mean_steps | minutes | time                |
+|---------:|-----------:|--------:|:--------------------|
+|      835 |     206.17 |     515 | 2025-08-15 08:35:00 |
+
+Interval with maximum average steps
+
+``` r
 n_missing <- sum(is.na(activity$steps))
 kable(tibble(missing_steps = n_missing), caption = "Total number of missing step values")
-
-
 ```
 
-```{r}
+| missing_steps |
+|--------------:|
+|          2304 |
+
+Total number of missing step values
+
+``` r
 # Join interval means and fill NAs
 activity_imp <- activity %>%
   left_join(interval_avg, by = "interval") %>%
@@ -224,16 +247,17 @@ activity_imp <- activity %>%
 
 # Sanity check: No NAs should remain in steps
 sum(is.na(activity_imp$steps))
-
 ```
 
-```{r}
+    ## [1] 0
+
+``` r
 daily_imp <- activity_imp %>%
   group_by(date) %>%
   summarise(total_steps = sum(steps), .groups = "drop")
 ```
 
-```{r}
+``` r
 # Freedman–Diaconis bin width for better histogram representation
 x <- daily_imp$total_steps
 bw_fd <- 2 * IQR(x) / length(x)^(1/3)
@@ -263,7 +287,11 @@ ggplot(daily_imp, aes(x = total_steps)) +
     panel.grid.minor = element_blank(),
     plot.title.position = "plot"
   )
+```
 
+![](figure/unnamed-chunk-13-1.png)
+
+``` r
 # Comparison table 
 compare_stats <- tibble(
   Dataset = c("Ignoring NAs", "After Imputation"),
@@ -274,11 +302,16 @@ compare_stats <- tibble(
 )
 
 kable(compare_stats, digits = 1, caption = "Comparison of Mean and Median Daily Steps")
-
-
 ```
 
-```{r}
+| Dataset          |    Mean |  Median |
+|:-----------------|--------:|--------:|
+| Ignoring NAs     | 10766.2 | 10765.0 |
+| After Imputation | 10766.2 | 10766.2 |
+
+Comparison of Mean and Median Daily Steps
+
+``` r
 activity_imp <- activity_imp %>%
   mutate(
     wd = wday(date, week_start = 1),
@@ -293,12 +326,20 @@ interval_daytype <- activity_imp %>%
   summarise(mean_steps = mean(steps), .groups = "drop")
 
 kable(head(interval_daytype), digits = 2, caption = "First rows: average steps by interval & day type")
-
 ```
 
-```{r}
+| day_type | interval | mean_steps |
+|:---------|---------:|-----------:|
+| weekday  |        0 |       2.25 |
+| weekday  |        5 |       0.45 |
+| weekday  |       10 |       0.17 |
+| weekday  |       15 |       0.20 |
+| weekday  |       20 |       0.10 |
+| weekday  |       25 |       1.59 |
 
+First rows: average steps by interval & day type
 
+``` r
 # Convert intervals to time
 interval_daytype <- interval_daytype %>%
   mutate(
@@ -370,7 +411,9 @@ ggplot(interval_daytype, aes(x = time, y = mean_steps, color = day_type)) +
   )
 ```
 
-```{r}
+![](figure/unnamed-chunk-15-1.png)
+
+``` r
 # Convert interval to time-of-day
 interval_daytype <- interval_daytype %>%
   mutate(
@@ -418,3 +461,5 @@ ggplot(interval_daytype, aes(x = time, y = mean_steps)) +
     plot.subtitle = element_text(color = "grey30", size = 10)
   )
 ```
+
+![](figure/unnamed-chunk-16-1.png)
